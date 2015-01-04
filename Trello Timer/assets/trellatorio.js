@@ -445,28 +445,32 @@ function lerHoras(id, nome, username) {
     var minutos = "00";
 
     Trello.cards.get( id + "/checklists", function(checklists) {
-        $.each(checklists, function(index, checklist) {
-            if (checklist.name == 'Horas') {
-                Trello.checklists.get( checklist.id , function(checklist) {
-                    $.each(checklist.checkItems, function(index, item) {
-                        if ( item.name.indexOf(nome + " (@" + username + ") : ") == 0) {
-                            var txt = item.name.split(nome + " (@" + username + ") : ");
-                            var txt = txt[1].trim().split(":");
-                            hora = txt[0].trim();
-                            minutos = txt[1].trim();
-                            createElementEditHours(id, nome, username, hora, minutos);
-                        } else {
-                            createElementEditHours(id, nome, username, hora, minutos);
-                        }
+        if (checklists.length == 0) {
+            createElementEditHours(id, nome, username, hora, minutos);
+        } else {
+            $.each(checklists, function(index, checklist) {
+                if (checklist.name == 'Horas') {
+                    Trello.checklists.get( checklist.id , function(checklist) {
+                        $.each(checklist.checkItems, function(index, item) {
+                            if ( item.name.indexOf(nome + " (@" + username + ") : ") == 0) {
+                                var txt = item.name.split(nome + " (@" + username + ") : ");
+                                var txt = txt[1].trim().split(":");
+                                hora = txt[0].trim();
+                                minutos = txt[1].trim();
+                                createElementEditHours(id, nome, username, hora, minutos);
+                            } else {
+                                createElementEditHours(id, nome, username, hora, minutos);
+                            }
+                        });
+                    }, function() {
+                        alerta('Ops.. houve um erro.');
+                        unblockSaveAndEdit();
                     });
-                }, function() {
-                    alerta('Ops.. houve um erro.');
-                    unblockSaveAndEdit();
-                });
-            } else {
-                createElementEditHours(id, nome, username, hora, minutos);
-            }
-        });
+                } else {
+                    createElementEditHours(id, nome, username, hora, minutos);
+                }
+            });
+        }
     }, function(){
         alerta('Ops... Houve um erro lendo esse card. Tente novamente.');
         unblockSaveAndEdit();
