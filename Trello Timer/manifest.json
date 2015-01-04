@@ -1,0 +1,33 @@
+{
+    "manifest_version": 2,
+    "name": "Trello Timer",
+    "description": "Controle seu tempo de trabalho sem sair do seu Trello!",
+    "author": "Mário Valney",
+    "version": "1.0",
+    "page_action": {
+        "default_icon": { 
+            "19" : "icon-19.png",
+            "38" : "icon-38.png"
+        },
+        "default_title": "Trello Timer"
+    },
+    "permissions": [ 
+        "tabs",
+        "http://*/*",
+        "https://*/*",
+        "declarativeContent"
+    ],
+    "icons": {
+        "48": "icon-48.png",
+        "128": "icon-128.png"
+    },
+    "background": {
+        "scripts": ["background.js"],
+        "persistent": false
+    },
+    "content_scripts": [ {
+        "js": [ "assets/jquery.js", "assets/client.js", "assets/trellatorio.js" ],
+        "css": [ "assets/trellatorio.css" ],
+        "matches": [ "https://*.trello.com/*" ]
+    } ]
+}
