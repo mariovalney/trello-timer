@@ -119,6 +119,8 @@
 .trellatorio-edit-popup {
 	z-index: 9999!important;
 	text-align: center;
+	width: 400px!important;
+	margin-left: -50px;
 }
 
 .trellatorio-edit-popup .edit-timer {
@@ -165,7 +167,7 @@
 
 @-webkit-keyframes runningClock {
     0% {opacity: 1;}
-	50% {opacity: 0;}
+	50% {opacity: 0.5;}
 	100% {opacity: 1;}
 }
 

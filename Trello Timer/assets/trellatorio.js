@@ -3,9 +3,10 @@ function initTrellatorioOnChrome() {
     var html = '<div class="window-module clearfix" id="trellatorio" data-card="' + getCardId() + '"">';
     html += '<div class="clearfix"><h3>Timer</h3><span class="trellatorio-timer">';
     html += '<span class="timer-hours">00</span>:';
-    html += '<span class="timer-minutes">00</span>';
+    html += '<span class="timer-minutes">00</span>:';
+    html += '<span class="timer-seconds">00</span>';
     html += '</span></div><div class="clearfix">';
-    html += '<div class="login-box"><p>Você precisa <a href="#" class="autorizar-trellatorio">autorizar</a> o acesso do Trellatório on Chrome para utilizar essa ferramenta.</p></div>';
+    html += '<div class="login-box"><p>Você precisa <a href="#" class="autorizar-trellatorio">autorizar</a> o acesso do <strong>Trello Timer</strong> para utilizar essa ferramenta.</p></div>';
     html += '<div class="nao-autorizado">'
     html += '<a href="#" class="button-link js-start-timer" title="Clique para iniciar a contagem de tempo."> <span class="icon-sm icon-clock"></span> Começar</a>';
     html += '<a href="#" class="button-link js-send-timer" title="Clique para salvar a contagem de tempo."> <span class="icon-sm icon-save"></span> Salvar</a>';
@@ -17,9 +18,11 @@ function initTrellatorioOnChrome() {
     html = '<div class="trellatorio-block-click"></div>';
     html += '<div class="pop-over trellatorio-edit-popup clearfix"><div class="header clearfix"><span class="header-title">Editar Horas</span><a class="close-btn js-close-popover" href="#"><span class="icon-sm icon-close"></span></a></div>';
     html += '<div class="content clearfix fancy-scrollbar js-tab-parent" style="max-height: 311px;"><div><form class="edit-timer">';
-    html += '<input type="number" min="1" placeholder="00" value="00" class="timer-horas">';
+    html += '<input type="number" min="0" placeholder="00" class="timer-horas">';
     html += ':';
-    html += '<input type="number" min="1" max="59" placeholder="00" value="00" class="timer-minutos">';
+    html += '<input type="number" min="0" max="59" placeholder="00" class="timer-minutos">';
+    html += ':';
+    html += '<input type="number" min="0" max="59" placeholder="00" class="timer-segundos">';
     html += '<input type="submit" value="Salvar" class="btn-send-edit"></form>';
     html += '</div></div></div>';
 
@@ -31,9 +34,9 @@ function initTrellatorioOnChrome() {
         }
     }
 
-    clockIsRunning = false;
     isSavingHours = false;
     isEditingHours = false;
+    clockIsRunning = false;
     windowModuleRemoved = false;
 
     // Verifica se o usuário tem acesso ao Trello
@@ -63,8 +66,9 @@ function initTrellatorioOnChrome() {
         } else {
             var h = parseInt( $('#trellatorio .timer-hours').text() );
             var m = parseInt( $('#trellatorio .timer-minutes').text() );
+            var s = parseInt( $('#trellatorio .timer-seconds').text() );
             var i = getCardId();
-            trellatorioAtualizarTimer(h, m, i);
+            trellatorioAtualizarTimer(h, m, s, i);
         }
     });
 
@@ -123,15 +127,16 @@ function initTrellatorioOnChrome() {
 
             var h = parseInt( $('#trellatorio .timer-hours').text() );
             var m = parseInt( $('#trellatorio .timer-minutes').text() );
+            var s = parseInt( $('#trellatorio .timer-seconds').text() );
             var i = $('#trellatorio').attr('data-card');
 
-            if (clockIsRunning || h != 0 || m != 0) {
+            if (clockIsRunning || h != 0 || m != 0 || s != 0) {
                 clearInterval(intervalo);
                 clockIsRunning = false;
 
                 var confirmarSaida = confirm("Deseja guardar o tempo antes de sair?\n\n(escolher 'Cancelar' perderá o processo)");
                 if (confirmarSaida){                    
-                    trellatorioAtualizarTimer(h, m, i);
+                    trellatorioAtualizarTimer(h, m, s, i);
                 }
             }
         }
@@ -169,7 +174,7 @@ function unblockSaveAndEdit() {
 
 function isDuasCasas(num) {
 
-    if (num < 0) {
+    if (num <= 0) {
         return "00";
     } else if (num < 10) {
         num = "0"+ num.toString();
@@ -180,59 +185,75 @@ function isDuasCasas(num) {
     
 }
 
-function toMinutos(tempo) {
+function toSegundos(tempo) {
     tempo = tempo.toString();
     tempo = tempo.trim();
 
     if (tempo.indexOf(":") > 0) {
         tempo = tempo.split(":");
-        var minutos = parseInt( tempo[0].trim() );
-        minutos = minutos * 60;
-        minutos = minutos + parseInt( tempo[1].trim() );    
 
-        return minutos;
+        if (tempo.length == 3) {
+            var h = parseInt( tempo[0].trim() );
+            var m = parseInt( tempo[1].trim() );
+            var s = parseInt( tempo[2].trim() );
+
+            var segundos = (3600 * h) + (60 * m) + s;
+
+        return segundos;
+        }
     }
 
     return 0;
 }
 
-function toHoras(minutos) {
-    minutos = parseInt(minutos);
+function toHoras(tempo) {
+    tempo = parseInt(tempo);
 
-    var h = Math.floor( minutos / 60 );
-    var m = minutos % 60;
+    var s = tempo % 60;
+    tempo = Math.floor( tempo / 60 );
 
-    return isDuasCasas(h) + ":" + isDuasCasas(m);
+    var m = tempo % 60;
+    var h = Math.floor( tempo / 60 );
+
+    return isDuasCasas(h) + ":" + isDuasCasas(m) + ":" + isDuasCasas(s);
 }
 
 function zerarRelogio() {
     $('#trellatorio .timer-hours').text('00');
     $('#trellatorio .timer-minutes').text('00');
+    $('#trellatorio .timer-seconds').text('00');
     window.onbeforeunload = function() { return null }
 }
 
 function timeWizard() {
+    var horas = parseInt( $('#trellatorio .timer-hours').text() );
     var minutos = parseInt( $('#trellatorio .timer-minutes').text() );
-    minutos++;
+    var segundos = parseInt( $('#trellatorio .timer-seconds').text() );
 
-    minutos = isDuasCasas(minutos);
+    segundos++;
     
+    if (segundos == 60) {
+        minutos ++;
+        segundos = 0;
+    }
+
     if (minutos == 60) {
-        var horas = parseInt( $('#trellatorio .timer-hours').text() );
         horas ++;
+        minutos = 0;
 
         horas = isDuasCasas(horas);
         $('#trellatorio .timer-hours').text(horas);
-
-        minutos = "00";
     }
 
+    minutos = isDuasCasas(minutos);
+    segundos = isDuasCasas(segundos);
     $('#trellatorio .timer-minutes').text(minutos);
+    $('#trellatorio .timer-seconds').text(segundos);
 }
 
 function trellatorioStartTimer() {
     // 1sec = 1000ms
-    var tempo = 1000 * 60;
+    var tempo = 1000;
     alerta('Contagem iniciada');
     intervalo = setInterval("timeWizard();", tempo);
     clockIsRunning = true;
@@ -263,21 +284,18 @@ function trellatorioEditTimer() {
     }
 }
 
-function trellatorioAtualizarTimer(h, m, id) {
-    var horas = h;
-    var minutos = m;
-
-    var horasEmMinutos = minutos + toMinutos(horas);
+function trellatorioAtualizarTimer(h, m, s, id) {
+    var horasEmSegundos = toSegundos(h + ":" + m + ":" + s);
 
     if (clockIsRunning) {
         alerta('Pare o relógio antes de salvar os dados.');
     } else {
-        if (horasEmMinutos == 0) {
+        if (horasEmSegundos == 0) {
             alerta('Você não trabalhou nenhuma hora.');
         } else {
             blockSaveAndEdit();
             Trello.members.get("me", function(me) {
-                adicionarHoras(id, me.fullName, me.username, horasEmMinutos);
+                adicionarHoras(id, me.fullName, me.username, horasEmSegundos);
             }, function() {
                 unblockSaveAndEdit();
                 alerta('Ops... Houve um erro.');
@@ -306,58 +324,61 @@ function getCardId() {
     }
 }
 
-function adicionarHoras(id, nome, username, horasEmMinutos) {
+function adicionarHoras(id, nome, username, horasEmSegundos) {
     if (id != false) {
         Trello.cards.get( id + "/checklists", function(checklists) {
             if (checklists.length == 0) {
-                var msgHoras = nome + " (@" + username + ") : " + toHoras(horasEmMinutos);
+                var msgHoras = nome + " (@" + username + ") - " + toHoras(horasEmSegundos);
                 criarHoras(id, msgHoras);
             } else {
+                var checklistAtual = false;
                 $.each(checklists, function(index, checklist) {
-                    if ( (checklist.name) == "Horas" ) {
-                        Trello.checklists.get( checklist.id , function(checklist){
-                            if (checklist.checkItems.length == 0) {
-                                var msgHoras = nome + " (@" + username + ") : " + toHoras(horasEmMinutos);
-                                
-                                Trello.post("cards/" + id + "/checklist/" + checklist.id + "/checkItem", { name: msgHoras }, function() {
-                                    unblockSaveAndEdit();
-                                    zerarRelogio();
-                                    alerta('Horas adicionadas com sucesso.');
-                                }, function() {
-                                    unblockSaveAndEdit();
-                                });
-                            } else {
-                                $.each(checklist.checkItems, function(index, item) {
-                                    if ( item.name.indexOf(nome + " (@" + username + ") : ") == 0 ) {
-                                        var txt = item.name.split(nome + " (@" + username + ") : ");
-                                        var minutos = toMinutos(txt[1]);
-                                        minutos = minutos + horasEmMinutos;
+                    if ( checklist.name == "Horas" ) { checklistAtual = checklist }
+                });
 
-                                        var msgHoras = nome + " (@" + username + ") : " + toHoras(minutos);
+                if ( checklistAtual != false ) {
+                    Trello.checklists.get( checklistAtual.id , function(checklist){
+                        if (checklist.checkItems.length == 0) {
+                            var msgHoras = nome + " (@" + username + ") - " + toHoras(horasEmSegundos);
+                            
+                            Trello.post("cards/" + id + "/checklist/" + checklist.id + "/checkItem", { name: msgHoras }, function() {
+                                unblockSaveAndEdit();
+                                zerarRelogio();
+                                alerta('Horas adicionadas com sucesso.');
+                            }, function() {
+                                unblockSaveAndEdit();
+                            });
+                        } else {
+                            $.each(checklist.checkItems, function(index, item) {
+                                if ( item.name.indexOf("(@" + username + ") - ") > 0 ) {
+                                    var txt = item.name.split("(@" + username + ") - ");
+                                    var tempo = toSegundos(txt[1].trim());
+                                    tempo = tempo + horasEmSegundos;
 
-                                        Trello.post("cards/" + id + "/checklist/" + checklist.id + "/checkItem", { name: msgHoras, pos: item.pos }, function() {
-                                            Trello.delete("checklists/" + checklist.id + "/checkItems/" + item.id, function(){
-                                                unblockSaveAndEdit();
-                                                zerarRelogio();
-                                                alerta('Horas adicionadas com sucesso.');
-                                            }, function() {
-                                                alerta('Ops... Houve um erro ao atualizar as horas, verifique se há algo duplicado.');
-                                                unblockSaveAndEdit();
-                                            });
+                                    var msgHoras = nome + " (@" + username + ") - " + toHoras(tempo);
+
+                                    Trello.post("cards/" + id + "/checklist/" + checklist.id + "/checkItem", { name: msgHoras, pos: item.pos }, function() {
+                                        Trello.delete("checklists/" + checklist.id + "/checkItems/" + item.id, function(){
+                                            unblockSaveAndEdit();
+                                            zerarRelogio();
+                                            alerta('Horas adicionadas com sucesso.');
                                         }, function() {
+                                            alerta('Ops... Houve um erro ao atualizar as horas, verifique se há algo duplicado.');
                                             unblockSaveAndEdit();
                                         });
-                                    }
-                                });
-                            }
-                        }, function() {
-                            unblockSaveAndEdit();
-                        });
-                    } else {
-                        var msgHoras = nome + " (@" + username + ") : " + toHoras(horasEmMinutos);
-                        criarHoras(id, msgHoras);
-                    }
-                });
+                                    }, function() {
+                                        unblockSaveAndEdit();
+                                    });
+                                }
+                            });
+                        }
+                    }, function() {
+                        unblockSaveAndEdit();
+                    });
+                } else {
+                    var msgHoras = nome + " (@" + username + ") - " + toHoras(horasEmSegundos);
+                    criarHoras(id, msgHoras);
+                }
             }
         }, function() {
             unblockSaveAndEdit();
@@ -368,54 +389,57 @@ function adicionarHoras(id, nome, username, horasEmMinutos) {
     }
 }
 
-function atualizarHoras(id, nome, username, horasEmMinutos) {
+function atualizarHoras(id, nome, username, horasEmSegundos) {
     if (id != false) {
         Trello.cards.get( id + "/checklists", function(checklists) {
             if (checklists.length == 0) {
-                var msgHoras = nome + " (@" + username + ") : " + toHoras(horasEmMinutos);
+                var msgHoras = nome + " (@" + username + ") - " + toHoras(horasEmSegundos);
                 criarHoras(id, msgHoras);
             } else {
+                var checklistAtual = false;
                 $.each(checklists, function(index, checklist) {
-                    if ( (checklist.name) == "Horas" ) {
-                        Trello.checklists.get( checklist.id , function(checklist){
-                            if (checklist.checkItems.length == 0) {
-                                var msgHoras = nome + " (@" + username + ") : " + toHoras(horasEmMinutos);
-                                
-                                Trello.post("cards/" + id + "/checklist/" + checklist.id + "/checkItem", { name: msgHoras }, function() {
-                                    unblockSaveAndEdit();
-                                    zerarRelogio();
-                                    alerta('Horas alteradas com sucesso.');
-                                }, function() {
-                                    unblockSaveAndEdit();
-                                });
-                            } else {
-                                $.each(checklist.checkItems, function(index, item) {
-                                    if ( item.name.indexOf(nome + " (@" + username + ") : ") == 0 ) {
-                                        var msgHoras = nome + " (@" + username + ") : " + toHoras(horasEmMinutos);
+                    if ( checklist.name == "Horas" ) { checklistAtual = checklist }
+                });
 
-                                        Trello.post("cards/" + id + "/checklist/" + checklist.id + "/checkItem", { name: msgHoras, pos: item.pos }, function() {
-                                            Trello.delete("checklists/" + checklist.id + "/checkItems/" + item.id, function(){
-                                                unblockSaveAndEdit();
-                                                zerarRelogio();
-                                                alerta('Horas alteradas com sucesso.');
-                                            }, function() {
-                                                alerta('Ops... Houve um erro ao atualizar as horas, verifique se há algo duplicado.');
-                                                unblockSaveAndEdit();
-                                            });
+                if ( checklistAtual != false ) {
+                    Trello.checklists.get( checklistAtual.id , function(checklist){
+                        if (checklist.checkItems.length == 0) {
+                            var msgHoras = nome + " (@" + username + ") - " + toHoras(horasEmSegundos);
+                            
+                            Trello.post("cards/" + id + "/checklist/" + checklist.id + "/checkItem", { name: msgHoras }, function() {
+                                unblockSaveAndEdit();
+                                zerarRelogio();
+                                alerta('Horas alteradas com sucesso.');
+                            }, function() {
+                                unblockSaveAndEdit();
+                            });
+                        } else {
+                            $.each(checklist.checkItems, function(index, item) {
+                                if ( item.name.indexOf("(@" + username + ") - ") > 0 ) {
+                                    var msgHoras = nome + " (@" + username + ") - " + toHoras(horasEmSegundos);
+
+                                    Trello.post("cards/" + id + "/checklist/" + checklist.id + "/checkItem", { name: msgHoras, pos: item.pos }, function() {
+                                        Trello.delete("checklists/" + checklist.id + "/checkItems/" + item.id, function(){
+                                            unblockSaveAndEdit();
+                                            zerarRelogio();
+                                            alerta('Horas alteradas com sucesso.');
                                         }, function() {
+                                            alerta('Ops... Houve um erro ao atualizar as horas, verifique se há algo duplicado.');
                                             unblockSaveAndEdit();
                                         });
-                                    }
-                                });
-                            }
-                        }, function() {
-                            unblockSaveAndEdit();
-                        });
-                    } else {
-                        var msgHoras = nome + " (@" + username + ") : " + toHoras(horasEmMinutos);
-                        criarHoras(id, msgHoras);
-                    }
-                });
+                                    }, function() {
+                                        unblockSaveAndEdit();
+                                    });
+                                }
+                            });
+                        }
+                    }, function() {
+                        unblockSaveAndEdit();
+                    });
+                } else {
+                    var msgHoras = nome + " (@" + username + ") - " + toHoras(horasEmSegundos);
+                    criarHoras(id, msgHoras);
+                }
             }
         }, function() {
             unblockSaveAndEdit();
@@ -443,23 +467,25 @@ function criarHoras(id, msgHoras) {
 function lerHoras(id, nome, username) {
     var hora = "00";
     var minutos = "00";
+    var segundos = "00";
 
     Trello.cards.get( id + "/checklists", function(checklists) {
         if (checklists.length == 0) {
-            createElementEditHours(id, nome, username, hora, minutos);
+            createElementEditHours(id, nome, username, hora, minutos, segundos);
         } else {
             $.each(checklists, function(index, checklist) {
                 if (checklist.name == 'Horas') {
                     Trello.checklists.get( checklist.id , function(checklist) {
                         $.each(checklist.checkItems, function(index, item) {
-                            if ( item.name.indexOf(nome + " (@" + username + ") : ") == 0) {
-                                var txt = item.name.split(nome + " (@" + username + ") : ");
+                            if ( item.name.indexOf(nome + " (@" + username + ") - ") == 0) {
+                                var txt = item.name.split(nome + " (@" + username + ") - ");
                                 var txt = txt[1].trim().split(":");
                                 hora = txt[0].trim();
                                 minutos = txt[1].trim();
-                                createElementEditHours(id, nome, username, hora, minutos);
+                                segundos = txt[2].trim();
+                                createElementEditHours(id, nome, username, hora, minutos, segundos);
                             } else {
-                                createElementEditHours(id, nome, username, hora, minutos);
+                                createElementEditHours(id, nome, username, hora, minutos, segundos);
                             }
                         });
                     }, function() {
@@ -467,7 +493,7 @@ function lerHoras(id, nome, username) {
                         unblockSaveAndEdit();
                     });
                 } else {
-                    createElementEditHours(id, nome, username, hora, minutos);
+                    createElementEditHours(id, nome, username, hora, minutos, segundos);
                 }
             });
         }
@@ -477,7 +503,7 @@ function lerHoras(id, nome, username) {
     });
 }
 
-function createElementEditHours(id, nome, username, hora, minutos) {
+function createElementEditHours(id, nome, username, hora, minutos, segundos) {
 
     $('.trellatorio-edit-popup').attr({
         'data-id': id,
@@ -495,6 +521,7 @@ function createElementEditHours(id, nome, username, hora, minutos) {
     $('.trellatorio-edit-popup .header-title').text('Clique para editar as horas');
     $('.trellatorio-edit-popup .timer-horas').val(hora.toString().trim());
     $('.trellatorio-edit-popup .timer-minutos').val(minutos.toString().trim());
+    $('.trellatorio-edit-popup .timer-segundos').val(segundos.toString().trim());
 }
 
 function trellatorioAtualizarHorasEditadas() {
@@ -503,10 +530,11 @@ function trellatorioAtualizarHorasEditadas() {
     var username = $('.trellatorio-edit-popup').attr('data-username');
     var hora = $('.trellatorio-edit-popup .timer-horas').val();
     var minutos = $('.trellatorio-edit-popup .timer-minutos').val();
+    var segundos = $('.trellatorio-edit-popup .timer-segundos').val();
 
-    var horasEmMinutos = toMinutos(hora + ":" + minutos);
+    var horasEmSegundos = toSegundos(hora + ":" + minutos + ":" + segundos);
 
-    atualizarHoras(id, nome, username, horasEmMinutos);
+    atualizarHoras(id, nome, username, horasEmSegundos);
     $('.trellatorio-edit-popup').stop().fadeOut('slow');
     $('.trellatorio-block-click').stop().hide();
 }
