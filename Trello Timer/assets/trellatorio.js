@@ -1,4 +1,15 @@
+//key:"8f1e3c5a0a3a1bc758f8a6f7c53f836a"
+//secret:"66c2de679608c3d3bd93730315966ca67fb1c00e45b2835f4dce2b46361463be"
+
+if (window.location.href.indexOf("https://trello.com/logged-out") == 0 ) {
+    Trello.deauthorize();
+};
+
 function initTrellatorioOnChrome() {
+
+    $('#trellatorio').remove();
+    $('.trellatorio-block-click').remove();
+    $('.trellatorio-edit-popup').remove();
 
     var html = '<div class="window-module clearfix" id="trellatorio" data-card="' + getCardId() + '"">';
     html += '<div class="clearfix"><h3>Timer</h3><span class="trellatorio-timer">';
@@ -17,12 +28,12 @@ function initTrellatorioOnChrome() {
 
     html = '<div class="trellatorio-block-click"></div>';
     html += '<div class="pop-over trellatorio-edit-popup clearfix"><div class="header clearfix"><span class="header-title">Editar Horas</span><a class="close-btn js-close-popover" href="#"><span class="icon-sm icon-close"></span></a></div>';
-    html += '<div class="content clearfix fancy-scrollbar js-tab-parent" style="max-height: 311px;"><div><form class="edit-timer">';
-    html += '<input type="number" min="0" placeholder="00" class="timer-horas">';
+    html += '<div class="content clearfix fancy-scrollbar js-tab-parent" style="max-height: 311px;"><div><form id="editForm" class="edit-timer" action name="editForm" >';
+    html += '<input type="number" name="horas" form="editForm" min="0" placeholder="00" class="timer-horas">';
     html += ':';
-    html += '<input type="number" min="0" max="59" placeholder="00" class="timer-minutos">';
+    html += '<input type="number" name="minutos" form="editForm" min="0" max="59" placeholder="00" class="timer-minutos">';
     html += ':';
-    html += '<input type="number" min="0" max="59" placeholder="00" class="timer-segundos">';
+    html += '<input type="number" name="segundos" form="editForm" min="0" max="59" placeholder="00" class="timer-segundos">';
     html += '<input type="submit" value="Salvar" class="btn-send-edit"></form>';
     html += '</div></div></div>';
 
@@ -84,21 +95,7 @@ function initTrellatorioOnChrome() {
     // Adiciona o listener do loggin
     $('#trellatorio').on('click', '.autorizar-trellatorio', function(event) {
         event.preventDefault();
-        Trello.authorize({
-            type: 'popup',
-            name: 'Trellatório on Chrome', 
-            persist: true,
-            expiration: 'never',
-            success: autorizado,
-            error: naoAutorizado,
-            scope: { write: true, read: true }
-        });
-    });
-
-    // Adiciona o listenet para o salvar do pop-up
-    $('.trellatorio-edit-popup form').on('submit', function(event) {
-        event.preventDefault();
-        trellatorioAtualizarHorasEditadas();
+        logar();
     });
 
     // Adiciona o listenet para fechar do pop-up
@@ -115,6 +112,16 @@ function initTrellatorioOnChrome() {
         unblockSaveAndEdit();
         $('.trellatorio-edit-popup').stop().fadeOut('slow');
         $('.trellatorio-block-click').stop().hide();
+    });
+
+    // Adiciona o listenet para o salvar do pop-up
+    $('.trellatorio-edit-popup form').submit(function(event) {
+        var h = $('#editForm input.timer-horas').val();
+        var m = $('#editForm input.timer-minutos').val();
+        var s = $('#editForm input.timer-segundos').val();
+        console.log(h+"/"+m+"/"+s);
+        trellatorioAtualizarHorasEditadas(h, m, s);
+        event.preventDefault();
     });
 
     window.onbeforeunload = function() { return null }
@@ -140,6 +147,29 @@ function initTrellatorioOnChrome() {
                 }
             }
         }
+    });
+
+}
+
+function autoplay() {
+    chrome.storage.sync.get({
+        autoplay: false,
+    }, function(items) {
+        if (items.autoplay == true) {
+            $('#trellatorio .js-start-timer').trigger( "click" );
+        }
+    });
+}
+
+function logar() {
+    Trello.authorize({
+        type: 'popup',
+        name: 'Trello Timer', 
+        persist: true,
+        expiration: 'never',
+        success: autorizado,
+        error: naoAutorizado,
+        scope: { write: true, read: true }
     });
 }
 
@@ -307,9 +337,12 @@ function trellatorioAtualizarTimer(h, m, s, id) {
 function autorizado() {
     $('#trellatorio .login-box').stop().hide();
     $('.nao-autorizado').addClass('autorizado');
+    autoplay();
 }
 
 function naoAutorizado() {
+    $('#trellatorio .login-box').stop().show();
+    $('.nao-autorizado').removeClass('autorizado');
     console.log('Putz... Não foi autorizado.');
 }
 
@@ -519,18 +552,16 @@ function createElementEditHours(id, nome, username, hora, minutos, segundos) {
     $('.trellatorio-block-click').show();
 
     $('.trellatorio-edit-popup .header-title').text('Clique para editar as horas');
-    $('.trellatorio-edit-popup .timer-horas').val(hora.toString().trim());
-    $('.trellatorio-edit-popup .timer-minutos').val(minutos.toString().trim());
-    $('.trellatorio-edit-popup .timer-segundos').val(segundos.toString().trim());
+    $('#editForm .timer-horas').val(hora.toString().trim());
+    $('#editForm .timer-minutos').val(minutos.toString().trim());
+    $('#editForm .timer-segundos').val(segundos.toString().trim());
+
 }
 
-function trellatorioAtualizarHorasEditadas() {
+function trellatorioAtualizarHorasEditadas(hora, minutos, segundos) {
     var id = $('.trellatorio-edit-popup').attr('data-id');
     var nome = $('.trellatorio-edit-popup').attr('data-nome');
     var username = $('.trellatorio-edit-popup').attr('data-username');
-    var hora = $('.trellatorio-edit-popup .timer-horas').val();
-    var minutos = $('.trellatorio-edit-popup .timer-minutos').val();
-    var segundos = $('.trellatorio-edit-popup .timer-segundos').val();
 
     var horasEmSegundos = toSegundos(hora + ":" + minutos + ":" + segundos);
 
