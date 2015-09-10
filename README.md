@@ -1,4 +1,4 @@
-Trello Timer
+Trello Timer [Discontinued]
 =================
 
 A Google Chrome Extension to manage Hours inside Trello.
